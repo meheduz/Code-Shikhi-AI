@@ -1,0 +1,183 @@
+/* Improved Interface Styles */
+
+/* Glassmorphism effect */
+.header {
+    background: rgba(15, 23, 42, 0.8) !important;
+    backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(148, 163, 184, 0.2) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+}
+
+.chat-container {
+    background: rgba(15, 23, 42, 0.6) !important;
+    backdrop-filter: blur(30px) !important;
+    border: 1px solid rgba(148, 163, 184, 0.2) !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Smooth animations */
+.message {
+    animation: slideInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Better button hover effects */
+.history-btn:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4) !important;
+}
+
+button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.5) !important;
+}
+
+/* Improved input focus */
+input:focus {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15) !important;
+    transform: scale(1.01);
+    transition: all 0.3s ease;
+}
+
+/* Better scrollbar */
+.chat-box::-webkit-scrollbar {
+    width: 10px;
+}
+
+.chat-box::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, 0.5);
+    border-radius: 10px;
+}
+
+.chat-box::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+    border-radius: 10px;
+}
+
+.chat-box::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+}
+
+/* Message hover effect */
+.message:hover {
+    transform: translateX(2px);
+    transition: transform 0.2s ease;
+}
+
+/* Avatar glow effect */
+.message-avatar {
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    transition: all 0.3s ease;
+}
+
+.message:hover .message-avatar {
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.5);
+    transform: scale(1.05);
+}
+
+/* Code block improvements */
+pre {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+    transition: all 0.3s ease;
+}
+
+pre:hover {
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4) !important;
+    transform: translateY(-2px);
+}
+
+/* Status badge pulse */
+.status-dot {
+    box-shadow: 0 0 8px #22c55e;
+}
+
+/* Loading animation improvement */
+.loading-dot {
+    box-shadow: 0 0 8px #3b82f6;
+}
+
+/* History panel slide animation */
+.history-panel {
+    box-shadow: -8px 0 32px rgba(0, 0, 0, 0.6) !important;
+}
+
+.history-item {
+    transition: all 0.3s ease !important;
+}
+
+.history-item:hover {
+    transform: translateX(-4px) !important;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3) !important;
+}
+
+/* Gradient text for title */
+h1 {
+    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Better select dropdowns */
+select {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+select:hover {
+    border-color: rgba(59, 130, 246, 0.5) !important;
+    background: rgba(59, 130, 246, 0.15) !important;
+}
+
+/* Icon button pulse on hover */
+.icon-btn:hover {
+    animation: pulse-icon 0.6s ease;
+}
+
+@keyframes pulse-icon {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+/* AI badge glow */
+.ai-badge {
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+    animation: badge-glow 2s ease-in-out infinite;
+}
+
+@keyframes badge-glow {
+    0%, 100% {
+        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+    }
+    50% {
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.5);
+    }
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+    .header-actions {
+        flex-wrap: wrap;
+        gap: 8px !important;
+    }
+    
+    .history-btn {
+        padding: 6px 12px !important;
+        font-size: 0.75rem !important;
+    }
+}
