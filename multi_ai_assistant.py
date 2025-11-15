@@ -51,8 +51,8 @@ class MultiAIAssistant:
                     raise Exception("No Gemini model available")
                 self.active_ai = 'gemini'
                 return
-            except Exception as e:
-                print(f"⚠️ Gemini failed: {e}")
+            except Exception:
+                pass
         
 
         if self.groq_key:
@@ -60,7 +60,8 @@ class MultiAIAssistant:
                 response = requests.post(
                     'https://api.groq.com/openai/v1/chat/completions',
                     headers={'Authorization': f'Bearer {self.groq_key}'},
-                    json={'model': 'llama-3.3-70b-versatile', 'messages': [{'role': 'user', 'content': 'Hi'}], 'max_tokens': 10}
+                    json={'model': 'llama-3.3-70b-versatile', 'messages': [{'role': 'user', 'content': 'Hi'}], 'max_tokens': 10},
+                    timeout=5
                 )
                 if response.status_code == 200:
                     self.active_ai = 'groq'
@@ -72,9 +73,10 @@ class MultiAIAssistant:
         if self.cohere_key:
             try:
                 response = requests.post(
-                    'https://api.cohere.ai/v1/generate',
+                    'https://api.cohere.ai/v1/chat',
                     headers={'Authorization': f'Bearer {self.cohere_key}'},
-                    json={'model': 'command', 'prompt': 'Hi', 'max_tokens': 10}
+                    json={'model': 'command-r-08-2024', 'message': 'Hi', 'max_tokens': 10},
+                    timeout=5
                 )
                 if response.status_code == 200:
                     self.active_ai = 'cohere'
@@ -92,7 +94,8 @@ class MultiAIAssistant:
                         'HTTP-Referer': 'https://codeshikhi.ai',
                         'X-Title': 'CodeShikhi AI'
                     },
-                    json={'model': 'meta-llama/llama-3.3-70b-instruct:free', 'messages': [{'role': 'user', 'content': 'Hi'}], 'max_tokens': 10}
+                    json={'model': 'meta-llama/llama-3.3-70b-instruct:free', 'messages': [{'role': 'user', 'content': 'Hi'}], 'max_tokens': 10},
+                    timeout=5
                 )
                 if response.status_code == 200:
                     self.active_ai = 'openrouter'
@@ -264,7 +267,8 @@ class MultiAIAssistant:
                 ],
                 'max_tokens': 2048,
                 'temperature': 0.7
-            }
+            },
+            timeout=30
         )
         
         if response.status_code == 200:
@@ -291,7 +295,8 @@ class MultiAIAssistant:
                 'message': user_input,
                 'max_tokens': 2048,
                 'temperature': 0.7
-            }
+            },
+            timeout=30
         )
         
         if response.status_code == 200:
@@ -313,7 +318,8 @@ class MultiAIAssistant:
         response = requests.post(
             'https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium',
             headers={'Authorization': f'Bearer {self.hf_key}'},
-            json={'inputs': prompt, 'parameters': {'max_new_tokens': 512}}
+            json={'inputs': prompt, 'parameters': {'max_new_tokens': 512}},
+            timeout=30
         )
         
         if response.status_code == 200:
@@ -344,7 +350,8 @@ class MultiAIAssistant:
                 ],
                 'max_tokens': 2048,
                 'temperature': 0.7
-            }
+            },
+            timeout=30
         )
         
         if response.status_code == 200:

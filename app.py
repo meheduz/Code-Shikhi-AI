@@ -23,22 +23,28 @@ def static_files(filename):
 
 @app.route('/chat', methods=['POST'])
 def chat():
-    data = request.json
-    user_input = data.get('message', '')
-    image_data = data.get('image', None)
-    language = data.get('language', 'any')
-    ai_model = data.get('ai_model', 'auto')
-    
-    response = assistant.chat(user_input, image_data, language, ai_model)
-    return jsonify({'response': response})
+    try:
+        data = request.json
+        user_input = data.get('message', '')
+        image_data = data.get('image', None)
+        language = data.get('language', 'any')
+        ai_model = data.get('ai_model', 'auto')
+        
+        response = assistant.chat(user_input, image_data, language, ai_model)
+        return jsonify({'response': response})
+    except Exception as e:
+        return jsonify({'response': f'Error: {str(e)}'}), 500
 
 @app.route('/status')
 def status():
-    return jsonify({
-        'status': 'online',
-        'assistant_type': assistant.get_status(),
-        'gemini_enabled': assistant.use_gemini
-    })
+    try:
+        return jsonify({
+            'status': 'online',
+            'assistant_type': assistant.get_status(),
+            'gemini_enabled': assistant.use_gemini
+        })
+    except Exception:
+        return jsonify({'status': 'error'}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
