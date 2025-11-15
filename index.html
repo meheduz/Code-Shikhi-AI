@@ -548,6 +548,10 @@
             from { opacity: 0; transform: translateX(-10px); }
             to { opacity: 1; transform: translateX(0); }
         }
+        @keyframes slideOut {
+            from { opacity: 1; transform: translateX(0); }
+            to { opacity: 0; transform: translateX(10px); }
+        }
 
         .icon-btn {
             padding: 12px 14px;
@@ -658,10 +662,18 @@
                 </button>
             </div>
             <div id="imagePreview" style="display:none; padding: 10px 25px; background: rgba(15, 23, 42, 0.4);">
-                <img id="previewImg" style="max-width: 200px; border-radius: 8px; border: 2px solid rgba(59, 130, 246, 0.3);">
-                <button onclick="clearImage()" style="margin-left: 10px; padding: 6px 12px; font-size: 12px; background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.3);">
-                    <i class="fa-solid fa-xmark"></i> Remove
-                </button>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <img id="previewImg" style="max-width: 200px; max-height: 150px; border-radius: 8px; border: 2px solid rgba(59, 130, 246, 0.3); object-fit: contain;">
+                    <div style="flex: 1;">
+                        <div style="color: #22c55e; font-size: 12px; margin-bottom: 4px;">
+                            <i class="fa-solid fa-check-circle"></i> Image ready for analysis
+                        </div>
+                        <div style="color: #64748b; font-size: 11px;">AI will analyze this image along with your message</div>
+                    </div>
+                    <button onclick="clearImage()" style="padding: 6px 12px; font-size: 12px; background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 6px; color: #ef4444; cursor: pointer;">
+                        <i class="fa-solid fa-xmark"></i> Remove
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -887,14 +899,62 @@
             const input = document.getElementById('imageInput');
             const file = input.files[0];
             if (file) {
+                // Validate file size (max 5MB)
+                if (file.size > 5 * 1024 * 1024) {
+                    showError('Image too large. Please select an image smaller than 5MB.');
+                    input.value = '';
+                    return;
+                }
+                
+                // Validate file type
+                if (!file.type.startsWith('image/')) {
+                    showError('Please select a valid image file (PNG, JPG, GIF, etc.).');
+                    input.value = '';
+                    return;
+                }
+                
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    selectedImage = e.target.result;
-                    document.getElementById('previewImg').src = selectedImage;
-                    document.getElementById('imagePreview').style.display = 'block';
+                    // Compress image if needed
+                    compressImage(e.target.result, (compressedImage) => {
+                        selectedImage = compressedImage;
+                        document.getElementById('previewImg').src = compressedImage;
+                        document.getElementById('imagePreview').style.display = 'block';
+                    });
                 };
                 reader.readAsDataURL(file);
             }
+        }
+        
+        function compressImage(dataUrl, callback) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Calculate new dimensions (max 1024px)
+                let { width, height } = img;
+                const maxSize = 1024;
+                
+                if (width > maxSize || height > maxSize) {
+                    if (width > height) {
+                        height = (height * maxSize) / width;
+                        width = maxSize;
+                    } else {
+                        width = (width * maxSize) / height;
+                        height = maxSize;
+                    }
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                
+                // Draw and compress
+                ctx.drawImage(img, 0, 0, width, height);
+                const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                callback(compressedDataUrl);
+            };
+            img.src = dataUrl;
         }
         
         function clearImage() {
@@ -1050,6 +1110,26 @@
             });
         
         document.getElementById('userInput').focus();
+        
+        // Error notification function
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.style.cssText = `
+                position: fixed; top: 20px; right: 20px; z-index: 9999;
+                background: rgba(239, 68, 68, 0.9); color: white;
+                padding: 12px 16px; border-radius: 8px;
+                font-size: 14px; max-width: 300px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                animation: slideIn 0.3s ease-out;
+            `;
+            errorDiv.innerHTML = `<i class="fa-solid fa-exclamation-triangle"></i> ${message}`;
+            document.body.appendChild(errorDiv);
+            
+            setTimeout(() => {
+                errorDiv.style.animation = 'slideOut 0.3s ease-in';
+                setTimeout(() => errorDiv.remove(), 300);
+            }, 4000);
+        }
         
         // Copy code function - MUST be defined before use
         window.copyCode = function(btn) {

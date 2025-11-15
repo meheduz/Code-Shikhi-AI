@@ -37,7 +37,7 @@ class MultiAIAssistant:
         if self.gemini_key and genai:
             try:
                 genai.configure(api_key=self.gemini_key)
-                self.model = genai.GenerativeModel('gemini-2.5-flash')
+                self.model = genai.GenerativeModel('gemini-1.5-flash')
                 self.active_ai = 'gemini'
                 print("✅ Gemini AI ready")
                 return
@@ -122,8 +122,10 @@ class MultiAIAssistant:
         
         # Image analysis only works with Gemini
         if image_data:
-            if not self.gemini_key:
-                return "❌ Image analysis requires Gemini API. Please add GEMINI_API_KEY."
+            if not self.gemini_key or not genai:
+                return "❌ Image analysis requires Gemini API and google-generativeai library. Please install dependencies and add GEMINI_API_KEY."
+            if not Image:
+                return "❌ Image processing requires Pillow library. Please install: pip install Pillow"
             return self._chat_gemini(user_input, image_data, language)
         
         # If specific model selected, try that first
@@ -170,7 +172,7 @@ class MultiAIAssistant:
         """Generate response using Gemini API with context-aware prompts."""
         if not self.model:
             genai.configure(api_key=self.gemini_key)
-            self.model = genai.GenerativeModel('gemini-2.5-flash')
+            self.model = genai.GenerativeModel('gemini-1.5-flash')
         
         # Map language codes to full names
         lang_map = {
@@ -196,16 +198,31 @@ class MultiAIAssistant:
         if language != "any":
             system_prompt += f" Focus on {lang_name} programming."
         
-        if image_data and Image:
-            image_bytes = base64.b64decode(image_data.split(',')[1])
-            image = Image.open(io.BytesIO(image_bytes))
-            prompt = f"{system_prompt}\n\n{user_input or 'Analyze this code image'}"
-            response = self.model.generate_content([prompt, image])
-        else:
-            prompt = f"{system_prompt}\n\n{user_input}"
-            response = self.model.generate_content(prompt)
-        
-        return response.text
+        try:
+            if image_data and Image:
+                # Validate and process image
+                if not image_data.startswith('data:image/'):
+                    return "❌ Invalid image format. Please upload a valid image file."
+                
+                try:
+                    image_bytes = base64.b64decode(image_data.split(',')[1])
+                    image = Image.open(io.BytesIO(image_bytes))
+                    
+                    # Compress large images
+                    if image.size[0] > 1024 or image.size[1] > 1024:
+                        image.thumbnail((1024, 1024), Image.Resampling.LANCZOS)
+                    
+                    prompt = f"{system_prompt}\n\n{user_input or 'Analyze this code image and explain what it does'}"
+                    response = self.model.generate_content([prompt, image])
+                except Exception as img_error:
+                    return f"❌ Image processing error: {str(img_error)}"
+            else:
+                prompt = f"{system_prompt}\n\n{user_input}"
+                response = self.model.generate_content(prompt)
+            
+            return response.text
+        except Exception as e:
+            return f"❌ Gemini API error: {str(e)}"
     
     def _chat_groq(self, user_input, language):
         lang_map = {'cpp': 'C++', 'csharp': 'C#', 'javascript': 'JavaScript', 'typescript': 'TypeScript'}
