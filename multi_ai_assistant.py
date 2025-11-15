@@ -116,9 +116,9 @@ class MultiAIAssistant:
         
         if image_data:
             if not self.gemini_key or not genai:
-                return "❌ Image analysis requires Gemini API."
+                return "Image analysis requires Gemini API."
             if not Image:
-                return "❌ Image processing requires Pillow library."
+                return "Image processing requires Pillow library."
             return self._chat_gemini(user_input, image_data, language)
         
         if ai_model != "auto":
@@ -134,14 +134,11 @@ class MultiAIAssistant:
                 elif ai_model == 'deepseek' and self.deepseek_key:
                     return self._chat_deepseek(user_input, language)
                 else:
-                    return f"❌ {ai_model.title()} not available."
+                    return f"{ai_model.title()} not available."
             except Exception as e:
-                return f"❌ {ai_model.title()} error: {str(e)}"
+                return f"{ai_model.title()} error: {str(e)}"
         
-        if not self.active_ai:
-            return "❌ No AI service available."
-        
-        if self.active_ai in self.unavailable_services:
+        if not self.active_ai or self.active_ai in self.unavailable_services:
             return self._try_fallback(user_input, language)
         
         try:
@@ -155,12 +152,14 @@ class MultiAIAssistant:
                 result = self._chat_openrouter(user_input, language)
             elif self.active_ai == 'deepseek':
                 result = self._chat_deepseek(user_input, language)
+            else:
+                result = None
             
-            if result.startswith('❌'):
+            if result and result.startswith('❌'):
                 self.unavailable_services.add(self.active_ai)
                 return self._try_fallback(user_input, language)
             
-            return result
+            return result if result else "Error"
         except Exception:
             self.unavailable_services.add(self.active_ai)
             return self._try_fallback(user_input, language)
@@ -185,7 +184,7 @@ class MultiAIAssistant:
         }
         
         lang_name = lang_map.get(language.lower(), language)
-        system_prompt = f"You are an expert programming assistant. Provide clear responses with markdown formatting and code blocks."
+        system_prompt = "You are an expert programming assistant. Provide clear responses with markdown formatting and code blocks."
         if language != "any":
             system_prompt += f" Focus on {lang_name}."
         
@@ -330,7 +329,7 @@ class MultiAIAssistant:
         fallback_order = ['groq', 'openrouter', 'gemini', 'cohere', 'huggingface', 'deepseek']
         
         for ai_name in fallback_order:
-            if ai_name == self.active_ai or ai_name in self.unavailable_services:
+            if ai_name in self.unavailable_services:
                 continue
             
             try:
@@ -349,14 +348,14 @@ class MultiAIAssistant:
                 else:
                     continue
                 
-                if not result.startswith('❌'):
+                if result and not result.startswith('❌'):
                     return result
                 self.unavailable_services.add(ai_name)
             except:
                 self.unavailable_services.add(ai_name)
                 continue
         
-        return "❌ All AI services unavailable."
+        return "All AI services unavailable."
     
     @property
     def use_gemini(self):
