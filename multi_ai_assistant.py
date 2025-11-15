@@ -2,6 +2,7 @@ import os
 import base64
 import io
 import requests
+import time
 
 try:
     import google.generativeai as genai
@@ -16,8 +17,7 @@ except ImportError:
 class MultiAIAssistant:
     """Multi-AI Assistant with intelligent fallback system.
     
-    Supports 6 AI providers: Gemini, Groq, Cohere, OpenRouter, DeepSeek, HuggingFace.
-    Automatically selects best available model and falls back on failures.
+    Supports multiple AI providers with automatic fallback.
     """
     
     def __init__(self):
@@ -30,21 +30,31 @@ class MultiAIAssistant:
         
         self.active_ai = None
         self.model = None
+        self.last_request_time = {}
+        self.min_request_interval = 1  # 1 second between requests
         self._initialize_ai()
     
     def _initialize_ai(self):
-        # Try Gemini first
+
         if self.gemini_key and genai:
             try:
                 genai.configure(api_key=self.gemini_key)
-                self.model = genai.GenerativeModel('gemini-1.5-flash')
+                # Try different Gemini models
+                models_to_try = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest']
+                for model_name in models_to_try:
+                    try:
+                        self.model = genai.GenerativeModel(model_name)
+                        break
+                    except Exception:
+                        continue
+                else:
+                    raise Exception("No Gemini model available")
                 self.active_ai = 'gemini'
-                print("✅ Gemini AI ready")
                 return
             except Exception as e:
                 print(f"⚠️ Gemini failed: {e}")
         
-        # Try Groq (Free, very fast)
+
         if self.groq_key:
             try:
                 response = requests.post(
@@ -54,12 +64,11 @@ class MultiAIAssistant:
                 )
                 if response.status_code == 200:
                     self.active_ai = 'groq'
-                    print("✅ Groq AI ready")
                     return
-            except Exception as e:
-                print(f"⚠️ Groq failed: {e}")
+            except Exception:
+                pass
         
-        # Try Cohere (Free tier)
+
         if self.cohere_key:
             try:
                 response = requests.post(
@@ -69,12 +78,11 @@ class MultiAIAssistant:
                 )
                 if response.status_code == 200:
                     self.active_ai = 'cohere'
-                    print("✅ Cohere AI ready")
                     return
-            except Exception as e:
-                print(f"⚠️ Cohere failed: {e}")
+            except Exception:
+                pass
         
-        # Try OpenRouter (Free, multiple models)
+
         if self.openrouter_key:
             try:
                 response = requests.post(
@@ -88,33 +96,29 @@ class MultiAIAssistant:
                 )
                 if response.status_code == 200:
                     self.active_ai = 'openrouter'
-                    print("✅ OpenRouter AI ready")
                     return
-            except Exception as e:
-                print(f"⚠️ OpenRouter failed: {e}")
+            except Exception:
+                pass
         
-        # Try DeepSeek (Free, powerful)
-        if self.deepseek_key:
+
+        if self.deepseek_key and len(self.deepseek_key) > 10:
             try:
                 response = requests.post(
                     'https://api.deepseek.com/v1/chat/completions',
                     headers={'Authorization': f'Bearer {self.deepseek_key}'},
-                    json={'model': 'deepseek-chat', 'messages': [{'role': 'user', 'content': 'Hi'}], 'max_tokens': 10}
+                    json={'model': 'deepseek-chat', 'messages': [{'role': 'user', 'content': 'Hi'}], 'max_tokens': 10},
+                    timeout=10
                 )
                 if response.status_code == 200:
                     self.active_ai = 'deepseek'
-                    print("✅ DeepSeek AI ready")
                     return
-            except Exception as e:
-                print(f"⚠️ DeepSeek failed: {e}")
+            except Exception:
+                pass
         
-        # Try HuggingFace (Free)
+
         if self.hf_key:
             self.active_ai = 'huggingface'
-            print("✅ HuggingFace AI ready")
             return
-        
-        print("❌ No AI available")
 
     def chat(self, user_input, image_data=None, language="any", ai_model="auto"):
         if not user_input and not image_data:
@@ -148,31 +152,48 @@ class MultiAIAssistant:
             except Exception as e:
                 return f"❌ {ai_model.title()} error: {str(e)}"
         
-        # Auto mode - try best available
+        # Auto mode - try best available with fallback
         if not self.active_ai:
             return "❌ No AI service available. Please add API keys."
         
+        # Try primary AI, fallback to others if it fails
+        primary_result = None
         try:
             if self.active_ai == 'gemini':
-                return self._chat_gemini(user_input, image_data, language)
+                primary_result = self._chat_gemini(user_input, image_data, language)
             elif self.active_ai == 'groq':
-                return self._chat_groq(user_input, language)
+                primary_result = self._chat_groq(user_input, language)
             elif self.active_ai == 'cohere':
-                return self._chat_cohere(user_input, language)
+                primary_result = self._chat_cohere(user_input, language)
             elif self.active_ai == 'openrouter':
-                return self._chat_openrouter(user_input, language)
+                primary_result = self._chat_openrouter(user_input, language)
             elif self.active_ai == 'deepseek':
-                return self._chat_deepseek(user_input, language)
+                primary_result = self._chat_deepseek(user_input, language)
             elif self.active_ai == 'huggingface':
-                return self._chat_huggingface(user_input, language)
+                primary_result = self._chat_huggingface(user_input, language)
+            
+            # If primary AI failed, try fallback
+            if primary_result and primary_result.startswith('❌'):
+                return self._try_fallback(user_input, language, primary_result)
+            
+            return primary_result
         except Exception as e:
-            return f"❌ Error: {str(e)}"
+            return self._try_fallback(user_input, language, f"❌ Error: {str(e)}")
     
     def _chat_gemini(self, user_input, image_data, language):
         """Generate response using Gemini API with context-aware prompts."""
         if not self.model:
             genai.configure(api_key=self.gemini_key)
-            self.model = genai.GenerativeModel('gemini-1.5-flash')
+            # Try different Gemini models
+            models_to_try = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest']
+            for model_name in models_to_try:
+                try:
+                    self.model = genai.GenerativeModel(model_name)
+                    break
+                except Exception:
+                    continue
+            else:
+                self.model = genai.GenerativeModel('gemini-2.5-flash')  # fallback
         
         # Map language codes to full names
         lang_map = {
@@ -263,18 +284,18 @@ class MultiAIAssistant:
         prompt = f"You are a {lang_context} assistant. Answer: {user_input}"
         
         response = requests.post(
-            'https://api.cohere.ai/v1/generate',
+            'https://api.cohere.ai/v1/chat',
             headers={'Authorization': f'Bearer {self.cohere_key}'},
             json={
-                'model': 'command',
-                'prompt': prompt,
+                'model': 'command-r-08-2024',
+                'message': user_input,
                 'max_tokens': 2048,
                 'temperature': 0.7
             }
         )
         
         if response.status_code == 200:
-            return response.json()['generations'][0]['text']
+            return response.json()['text']
         else:
             return f"❌ Cohere error: {response.status_code}"
     
@@ -290,9 +311,9 @@ class MultiAIAssistant:
         prompt = f"Answer this {lang_context} question: {user_input}"
         
         response = requests.post(
-            'https://api-inference.huggingface.co/models/mistralai/Mixtral-8x7B-Instruct-v0.1',
+            'https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium',
             headers={'Authorization': f'Bearer {self.hf_key}'},
-            json={'inputs': prompt, 'parameters': {'max_new_tokens': 2048}}
+            json={'inputs': prompt, 'parameters': {'max_new_tokens': 512}}
         )
         
         if response.status_code == 200:
@@ -331,6 +352,15 @@ class MultiAIAssistant:
         else:
             return f"❌ OpenRouter error: {response.status_code}"
     
+    def _rate_limit(self, ai_name):
+        """Simple rate limiting"""
+        current_time = time.time()
+        if ai_name in self.last_request_time:
+            time_diff = current_time - self.last_request_time[ai_name]
+            if time_diff < self.min_request_interval:
+                time.sleep(self.min_request_interval - time_diff)
+        self.last_request_time[ai_name] = time.time()
+    
     def _chat_deepseek(self, user_input, language):
         lang_map = {'cpp': 'C++', 'csharp': 'C#', 'javascript': 'JavaScript', 'typescript': 'TypeScript'}
         lang_name = lang_map.get(language.lower(), language)
@@ -339,24 +369,37 @@ class MultiAIAssistant:
         if language != "any":
             system_msg += f" Focus on {lang_name} programming."
         
-        response = requests.post(
-            'https://api.deepseek.com/v1/chat/completions',
-            headers={'Authorization': f'Bearer {self.deepseek_key}'},
-            json={
-                'model': 'deepseek-chat',
-                'messages': [
-                    {'role': 'system', 'content': system_msg},
-                    {'role': 'user', 'content': user_input}
-                ],
-                'max_tokens': 2048,
-                'temperature': 0.7
-            }
-        )
-        
-        if response.status_code == 200:
-            return response.json()['choices'][0]['message']['content']
-        else:
-            return f"❌ DeepSeek error: {response.status_code}"
+        try:
+            self._rate_limit('deepseek')
+            response = requests.post(
+                'https://api.deepseek.com/v1/chat/completions',
+                headers={'Authorization': f'Bearer {self.deepseek_key}'},
+                json={
+                    'model': 'deepseek-chat',
+                    'messages': [
+                        {'role': 'system', 'content': system_msg},
+                        {'role': 'user', 'content': user_input}
+                    ],
+                    'max_tokens': 2048,
+                    'temperature': 0.7
+                },
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                return response.json()['choices'][0]['message']['content']
+            elif response.status_code == 402:
+                return "❌ DeepSeek quota exceeded. Try another AI model."
+            elif response.status_code == 401:
+                return "❌ DeepSeek API key invalid."
+            elif response.status_code == 429:
+                return "❌ DeepSeek rate limited. Try again later."
+            else:
+                return f"❌ DeepSeek error: {response.status_code}"
+        except requests.exceptions.Timeout:
+            return "❌ DeepSeek timeout. Try again."
+        except Exception:
+            return "❌ DeepSeek connection error."
     
     def get_status(self):
         if self.active_ai == 'gemini':
@@ -373,6 +416,36 @@ class MultiAIAssistant:
             return "HuggingFace AI"
         else:
             return "Offline"
+    
+    def _try_fallback(self, user_input, language, original_error):
+        """Try fallback AI models when primary fails"""
+        fallback_order = ['groq', 'openrouter', 'gemini', 'cohere', 'huggingface']
+        
+        for ai_name in fallback_order:
+            if ai_name == self.active_ai:
+                continue  # Skip the one that already failed
+                
+            try:
+                if ai_name == 'groq' and self.groq_key:
+                    result = self._chat_groq(user_input, language)
+                    if not result.startswith('❌'):
+                        return result
+                elif ai_name == 'openrouter' and self.openrouter_key:
+                    result = self._chat_openrouter(user_input, language)
+                    if not result.startswith('❌'):
+                        return result
+                elif ai_name == 'gemini' and self.gemini_key:
+                    result = self._chat_gemini(user_input, None, language)
+                    if not result.startswith('❌'):
+                        return result
+                elif ai_name == 'cohere' and self.cohere_key:
+                    result = self._chat_cohere(user_input, language)
+                    if not result.startswith('❌'):
+                        return result
+            except:
+                continue
+        
+        return original_error
     
     @property
     def use_gemini(self):

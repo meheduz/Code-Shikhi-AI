@@ -27,3 +27,5 @@ Thumbs.db
 # Project specific
 app.log
 check_models.py
+test_env/
+test_ai.py
