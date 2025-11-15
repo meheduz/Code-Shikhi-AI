@@ -316,14 +316,17 @@ class MultiAIAssistant:
         prompt = f"Answer this {lang_context} question: {user_input}"
         
         response = requests.post(
-            'https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium',
+            'https://api-inference.huggingface.co/models/gpt2',
             headers={'Authorization': f'Bearer {self.hf_key}'},
             json={'inputs': prompt, 'parameters': {'max_new_tokens': 512}},
             timeout=30
         )
         
         if response.status_code == 200:
-            return response.json()[0]['generated_text'].replace(prompt, '').strip()
+            result = response.json()
+            if isinstance(result, list) and len(result) > 0:
+                return result[0].get('generated_text', '').replace(prompt, '').strip()
+            return str(result)
         else:
             return f"❌ HuggingFace error: {response.status_code}"
     

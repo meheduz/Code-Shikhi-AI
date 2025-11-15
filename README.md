@@ -63,7 +63,7 @@ User Input → Flask API → MultiAIAssistant → Gemini API → Response
 
 ### Prerequisites
 - Python 3.8+
-- Google Gemini API key (free tier available)
+- API keys for AI services (optional)
 
 ### Installation
 
@@ -75,17 +75,20 @@ cd Code-Shikhi-AI
 # Install dependencies
 pip install -r requirements.txt
 
-# Set up API key
-echo "GEMINI_API_KEY=your_api_key_here" > .env
-
 # Run application
 python app.py
 ```
 
-### Get Your Free Gemini API Key
-1. Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
-2. Click "Create API Key"
-3. Copy and paste into `.env` file
+### Configuration
+Create `.env` file with API keys (optional - auto-fallback enabled):
+```
+GEMINI_API_KEY=your_key
+GROQ_API_KEY=your_key
+COHERE_API_KEY=your_key
+OPENROUTER_API_KEY=your_key
+DEEPSEEK_API_KEY=your_key
+HUGGINGFACE_API_KEY=your_key
+```
 
 ---
 
