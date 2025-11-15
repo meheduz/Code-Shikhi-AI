@@ -7,7 +7,7 @@
 
 > An intelligent AI agent that helps you learn ANY programming language through conversational AI, powered by Google Gemini.
 
-## 📸 Demo Screenshots
+## Demo Screenshots
 
 ### Landing Page
 ![Landing Page](screenshots/Landing%20page.png)
