@@ -116,7 +116,7 @@ class MultiAIAssistant:
         
         if image_data:
             if not self.gemini_key or not genai:
-                return "❌ Image analysis requires Gemini API and google-generativeai library."
+                return "❌ Image analysis requires Gemini API."
             if not Image:
                 return "❌ Image processing requires Pillow library."
             return self._chat_gemini(user_input, image_data, language)
@@ -141,23 +141,28 @@ class MultiAIAssistant:
         if not self.active_ai:
             return "❌ No AI service available."
         
+        if self.active_ai in self.unavailable_services:
+            return self._try_fallback(user_input, language)
+        
         try:
             if self.active_ai == 'gemini':
-                primary_result = self._chat_gemini(user_input, image_data, language)
+                result = self._chat_gemini(user_input, image_data, language)
             elif self.active_ai == 'groq':
-                primary_result = self._chat_groq(user_input, language)
+                result = self._chat_groq(user_input, language)
             elif self.active_ai == 'cohere':
-                primary_result = self._chat_cohere(user_input, language)
+                result = self._chat_cohere(user_input, language)
             elif self.active_ai == 'openrouter':
-                primary_result = self._chat_openrouter(user_input, language)
+                result = self._chat_openrouter(user_input, language)
             elif self.active_ai == 'deepseek':
-                primary_result = self._chat_deepseek(user_input, language)
+                result = self._chat_deepseek(user_input, language)
             
-            if primary_result and primary_result.startswith('❌'):
+            if result.startswith('❌'):
+                self.unavailable_services.add(self.active_ai)
                 return self._try_fallback(user_input, language)
             
-            return primary_result
-        except Exception as e:
+            return result
+        except Exception:
+            self.unavailable_services.add(self.active_ai)
             return self._try_fallback(user_input, language)
     
     def _chat_gemini(self, user_input, image_data, language):
@@ -351,7 +356,7 @@ class MultiAIAssistant:
                 self.unavailable_services.add(ai_name)
                 continue
         
-        return "❌ All AI services unavailable. Please try again later."
+        return "❌ All AI services unavailable."
     
     @property
     def use_gemini(self):
