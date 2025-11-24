@@ -5,7 +5,7 @@
 [![Gemini](https://img.shields.io/badge/Google-Gemini-4285F4?logo=google)](https://ai.google.dev)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-> An intelligent AI agent that helps you learn ANY programming language through conversational AI, powered by Google Gemini.
+> An intelligent AI agent that helps you learn ANY programming language through conversational AI.
 
 ## Demo Screenshots
 
